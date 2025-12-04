@@ -1,0 +1,24 @@
+[project]
+name = "ml-data-processing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.42.0",
+    "h5py>=3.15.1",
+    "lightgbm>=4.6.0",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.5",
+    "pandas>=2.3.3",
+    "psycopg2-binary>=2.9.11",
+    "pyarrow>=22.0.0",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "sqlalchemy>=2.0.44",
+    "tables>=3.10.2",
+    "tqdm>=4.67.1",
+    "xgboost>=3.1.2",
+]
