@@ -2,12 +2,18 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
+try:
+    import joblib  # Try to import joblib directly
+except ImportError:
+    joblib = None  # Use pickle if joblib is not available
+import pickle  # Fallback for model saving
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -52,9 +58,9 @@ if 'censorship_indicator' in df.columns and df['censorship_indicator'].sum() == 
             lambda x: x.rolling(window=30, min_periods=7).median()
         )
         
-        # Create binary target for significant drops
+        # Create binary target for significant drops - making it more sensitive (threshold lowered to 70%)
         df['censorship_target'] = (
-            (df['foreign_neighbours_share'] < df['foreign_conn_baseline'] * 0.5) &
+            (df['foreign_neighbours_share'] < df['foreign_conn_baseline'] * 0.7) &
             (df['foreign_neighbours_share'].notna()) &
             (df['foreign_conn_baseline'].notna())
         ).astype(int)
@@ -66,9 +72,9 @@ if 'censorship_indicator' in df.columns and df['censorship_indicator'].sum() == 
             lambda x: x.rolling(window=30, min_periods=7).median()
         )
         
-        # Create binary target for significant drops
+        # Create binary target for significant drops - making it more sensitive (threshold lowered to 70%)
         df['censorship_target'] = (
-            (df['asn_count'] < df['asn_count_baseline'] * 0.5) &
+            (df['asn_count'] < df['asn_count_baseline'] * 0.7) &
             (df['asn_count'].notna()) &
             (df['asn_count_baseline'].notna())
         ).astype(int)
@@ -224,6 +230,28 @@ for name, model in models.items():
     cm = confusion_matrix(y_test, y_pred)
     print(f"  Confusion Matrix:")
     print(f"    {cm}")
+
+    # Save the trained model
+    model_dir = 'models'
+    os.makedirs(model_dir, exist_ok=True)
+
+    model_filename = f"{model_dir}/{name.lower().replace(' ', '_')}.pkl"
+
+    # Try to save using joblib first, then pickle as fallback
+    if joblib is not None:
+        try:
+            joblib.dump(model, model_filename)
+            print(f"  Model saved to {model_filename}")
+        except:
+            # If joblib fails, try pickle
+            with open(model_filename, 'wb') as f:
+                pickle.dump(model, f)
+            print(f"  Model saved to {model_filename} using pickle")
+    else:
+        # Use pickle if joblib is not available
+        with open(model_filename, 'wb') as f:
+            pickle.dump(model, f)
+        print(f"  Model saved to {model_filename} using pickle")
 
 # Detailed classification reports
 for name in models.keys():

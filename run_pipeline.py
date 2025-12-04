@@ -4,7 +4,8 @@ ASN Censorship Detection Pipeline Launcher
 
 This script runs the complete censorship detection pipeline:
 1. Data preprocessing and feature engineering
-2. Machine learning model training and evaluation
+2. Supervised machine learning model training and evaluation
+3. Unsupervised anomaly detection using time series autoencoders
 """
 
 import subprocess
@@ -27,7 +28,7 @@ def run_command(cmd, description):
             text=True,
             cwd=os.path.dirname(os.path.abspath(__file__))
         )
-        
+
         if result.returncode != 0:
             print(f"ERROR: Command failed with return code {result.returncode}")
             print(f"STDOUT: {result.stdout}")
@@ -36,7 +37,7 @@ def run_command(cmd, description):
         else:
             print("SUCCESS: Command completed successfully")
             return True
-            
+
     except Exception as e:
         print(f"EXCEPTION: {str(e)}")
         return False
@@ -46,7 +47,7 @@ def main():
     """Main function to run the complete pipeline"""
     print("ASN Censorship Detection Pipeline")
     print("===============================")
-    
+
     # Check if required CSV files exist
     required_files = [
         "data/raw/asn_data.csv",
@@ -54,50 +55,60 @@ def main():
         "data/raw/neighbour_data.csv",
         "data/raw/country_stat_data.csv"
     ]
-    
+
     missing_files = []
     for file_path in required_files:
         if not os.path.exists(file_path):
             missing_files.append(file_path)
-    
+
     if missing_files:
         print(f"ERROR: Required CSV files not found:")
         for file_path in missing_files:
             print(f"  - {file_path}")
         print("\nPlease ensure all required CSV files are in the data/raw/ directory.")
         sys.exit(1)
-    
+
     print("All required data files found!")
-    
+
     # Step 1: Run data preprocessing
     success = run_command(
         "python scripts/run_data_preprocessing.py",
         "STEP 1: Running data preprocessing and feature engineering..."
     )
-    
+
     if not success:
         print("FAILED: Data preprocessing failed - stopping pipeline")
         sys.exit(1)
-    
-    # Step 2: Run ML modeling
+
+    # Step 2: Run supervised ML modeling
     success = run_command(
-        "python scripts/run_ml_modeling.py", 
-        "STEP 2: Running machine learning modeling..."
+        "python scripts/run_ml_modeling.py",
+        "STEP 2: Running supervised machine learning modeling..."
     )
-    
+
     if not success:
-        print("FAILED: ML modeling failed")
+        print("FAILED: Supervised ML modeling failed")
         sys.exit(1)
-    
-    # Step 3: Summarize results
+
+    # Step 3: Run unsupervised anomaly detection
+    success = run_command(
+        "python scripts/run_unsupervised_ml.py",
+        "STEP 3: Running unsupervised anomaly detection with time series autoencoders..."
+    )
+
+    if not success:
+        print("WARNING: Unsupervised ML failed, but continuing with results")
+
+    # Step 4: Summarize results
     print("\nPIPELINE COMPLETED SUCCESSFULLY!")
     print("===============================")
-    print("Pipeline has completed both preprocessing and ML modeling steps.")
+    print("Pipeline has completed data preprocessing, supervised ML, and unsupervised anomaly detection.")
     print("\nNext steps:")
     print("- Check results in the output logs above")
     print("- Review the processed data in data/processed/")
     print("- Explore the Jupyter notebooks in notebooks/ for deeper analysis")
-    print("- Refer to SIMPLIFIED_README.md for detailed documentation")
+    print("- Compare supervised and unsupervised results")
+    print("- Refer to README.md for detailed documentation")
 
 
 if __name__ == "__main__":

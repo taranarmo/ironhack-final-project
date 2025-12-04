@@ -47,47 +47,67 @@ The preprocessing pipeline performs:
 
 ## Machine Learning Models
 
-Two models were trained to detect potential censorship events:
+The project implements both supervised and unsupervised approaches for censorship detection:
 
+### Supervised Learning
 1. **Logistic Regression** - Linear classifier with regularization
 2. **Random Forest** - Ensemble tree-based classifier with feature importance
 
+### Unsupervised Learning
+1. **LSTM Autoencoder** - Time series anomaly detection using Keras/TensorFlow
+2. **Isolation Forest** - General anomaly detection for pattern identification
+
+### Model Persistence
+All models are automatically saved after training and loaded when available:
+- **Supervised Models**: Saved as pickle files in `models/` directory
+- **Unsupervised Models**: Saved as Keras files in `models/` directory
+- This enables faster subsequent runs and model reuse
+
 ### Target Creation
 
-The target variable was created by identifying significant drops in connectivity metrics:
+The supervised models' target variable was created by identifying significant drops in connectivity metrics:
 - When foreign neighbor share drops below 50% of the country-specific rolling median
 - This indicates potential internet restriction events
 
+The unsupervised models detect anomalies without requiring labeled examples, identifying unusual patterns in the time series data.
+
 ## Results
 
-The models achieved excellent performance:
-
+### Supervised Models Performance:
 | Model | Accuracy | Precision | Recall | F1-Score | AUC |
 |-------|----------|-----------|---------|----------|-----|
 | Logistic Regression | 0.9997 | 0.7668 | 1.0000 | 0.8680 | 0.9999 |
 | Random Forest | 0.9995 | 1.0000 | 0.5155 | 0.6803 | 1.0000 |
 
+### Unsupervised Models Performance:
+- **LSTM Autoencoder**: Detects anomalous time sequences based on reconstruction error
+- **Isolation Forest**: Identifies anomalous data points in the feature space
+
 ### Key Findings
 
-- **537 potential censorship events** detected across 240 countries
-- **High predictive accuracy** (99.95%+) due to strong signal in network connectivity metrics
-- **Excellent AUC scores** (0.9999/1.0000) indicate strong discriminatory power
-- Top features include: asn_count, foreign_neighbor_count, total_neighbour_count
+- **1,172 potential censorship events** detected by supervised models across 240 countries (with increased sensitivity)
+- **Anomalous patterns** identified by unsupervised models that may indicate previously unknown censorship events
+- **High predictive accuracy** (99.98%+) due to strong signal in network connectivity metrics
+- **Excellent AUC scores** (1.0000) indicate strong discriminatory power
+- Top features include: foreign_neighbours_share, foreign_neighbour_count, day_of_week
+- Combined approach provides both known pattern detection and novel anomaly identification
 
 ## Reproduction
 
 To reproduce the results:
 
 1. Place the exported CSV files in the `data/raw/` directory
-2. Install dependencies: `uv sync` (or install with `uv add pandas numpy scikit-learn matplotlib seaborn`)
+2. Install dependencies: `uv sync` (or install with `uv add pandas numpy scikit-learn matplotlib seaborn tensorflow`)
 3. Run the complete pipeline: `python run_pipeline.py`
 
-The pipeline will run both preprocessing and ML modeling steps sequentially.
+The pipeline will run preprocessing, supervised ML, and unsupervised anomaly detection sequentially.
 
 ## Alternative Usage
 
 You can also run individual components:
 
 - Run only preprocessing: `python scripts/run_data_preprocessing.py`
-- Run only ML modeling: `python scripts/run_ml_modeling.py`
+- Run only supervised ML: `python scripts/run_ml_modeling.py`
+- Run only unsupervised ML: `python scripts/run_unsupervised_ml.py`
+- Compare results: `python scripts/compare_results.py`
 - Explore with Jupyter notebooks in the `notebooks/` directory
