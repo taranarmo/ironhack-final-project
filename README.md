@@ -26,7 +26,7 @@ final-project/
 │   └── ml_modeling.ipynb          # Jupyter notebook for ML modeling
 ├── run_pipeline.py               # Master pipeline runner
 ├── README.md                    # This file
-├── slides/                      # Marp presentation slides
+├── presentation.md             # Marp presentation slides
 ├── pyproject.toml              # Project dependencies and metadata
 ├── uv.lock                     # Exact dependency versions
 └── figures/                    # Generated visualizations
@@ -131,4 +131,4 @@ You can also run individual components:
 - Generate censorship event visualizations: `python scripts/generate_censorship_event_visualizations.py`
 - Generate method comparison visualizations: `python scripts/generate_unsupervised_event_visualizations.py`
 - Explore with Jupyter notebooks in the `notebooks/` directory
-- View presentation: Check `slides/presentation.md` (Marp format)
+- View presentation: Check `presentation.md` (Marp format)
