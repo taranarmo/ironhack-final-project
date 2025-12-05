@@ -10,46 +10,42 @@ warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8')
 sns.set_palette('husl')
 
-# Load the exported CSVs
-print('Loading CSV data...')
-asn_data = pd.read_csv('data/raw/asn_data.csv')
+# Load the exported CSVs - using country_stat_data for actual ASN counts
 connectivity_data = pd.read_csv('data/raw/connectivity_data.csv')
 neighbour_data = pd.read_csv('data/raw/neighbour_data.csv')
 country_stat_data = pd.read_csv('data/raw/country_stat_data.csv')
 
-print('ASN Data Shape:', asn_data.shape)
 print('Connectivity Data Shape:', connectivity_data.shape)
 print('Neighbour Data Shape:', neighbour_data.shape)
 print('Country Stat Data Shape:', country_stat_data.shape)
 
-print('\nASN Data Columns:', asn_data.columns.tolist())
 print('\nConnectivity Data Columns:', connectivity_data.columns.tolist())
+print('\nCountry Stat Data Columns:', country_stat_data.columns.tolist())
 
-# Process ASN data
-print('\nProcessing ASN data...')
-asn_df = asn_data.copy()
-asn_df['a_date'] = pd.to_datetime(asn_df['a_date'])
-asn_df = asn_df.sort_values(['a_country_iso2', 'a_date']).reset_index(drop=True)
-print(f'ASN data processed: {len(asn_df)} records')
-print(f'Countries covered: {asn_df["a_country_iso2"].nunique()}')
+# Process country stat data - this contains the actual ASN counts (cs_asns_ris and cs_asns_stats)
+print('\nProcessing country stat data...')
+stat_df = country_stat_data.copy()
+stat_df['date'] = pd.to_datetime(stat_df['cs_stats_timestamp'])
+stat_df = stat_df.rename(columns={'cs_country_iso2': 'country'})
+stat_df = stat_df.sort_values(['country', 'date']).reset_index(drop=True)
+print(f'Country stat data processed: {len(stat_df)} records')
+print(f'Countries covered: {stat_df["country"].nunique()}')
 
 # Process connectivity data
 print('\nProcessing connectivity data...')
 conn_df = connectivity_data.copy()
 conn_df['date'] = pd.to_datetime(conn_df['date'])
-conn_df = conn_df.sort_values(['asn_country', 'date']).reset_index(drop=True)
+conn_df = conn_df.rename(columns={'asn_country': 'country'})  # Standardize country column name
+conn_df = conn_df.sort_values(['country', 'date']).reset_index(drop=True)
 print(f'Connectivity data processed: {len(conn_df)} records')
-print(f'Countries covered: {conn_df["asn_country"].nunique()}')
+print(f'Countries covered: {conn_df["country"].nunique()}')
 
-# Process country stat data
-print('\nProcessing country stat data...')
-stat_df = country_stat_data.copy()
-stat_df['cs_stats_timestamp'] = pd.to_datetime(stat_df['cs_stats_timestamp'])
-stat_df = stat_df.sort_values(['cs_country_iso2', 'cs_stats_timestamp']).reset_index(drop=True)
-print(f'Country stat data processed: {len(stat_df)} records')
-print(f'Countries covered: {stat_df["cs_country_iso2"].nunique()}')
+# Process neighbour data
+print('\nProcessing neighbour data...')
+neigh_df = neighbour_data.copy()
+print(f'Neighbour data processed: {len(neigh_df)} records')
 
-# Create time-based features
+# Create time-based features for country stat data
 def add_time_features(df, date_col):
     df = df.copy()
     df['year'] = df[date_col].dt.year
@@ -62,20 +58,16 @@ def add_time_features(df, date_col):
     df['is_weekend'] = df[date_col].dt.dayofweek.isin([5, 6]).astype(int)
     return df
 
-# Apply to ASN data
-asn_df = add_time_features(asn_df, 'a_date')
-print("Added time features to ASN data")
+# Apply to country stat data
+stat_df = add_time_features(stat_df, 'date')
+print("Added time features to country stat data")
 
 # Apply to connectivity data
 conn_df = add_time_features(conn_df, 'date')
 print("Added time features to connectivity data")
 
-# Apply to country stat data
-stat_df = add_time_features(stat_df, 'cs_stats_timestamp')
-print("Added time features to country stat data")
-
-# Create lagged features for ASN data
-def create_lagged_features(df, value_col, lags=[1, 7, 14, 30], group_col='a_country_iso2'):
+# Create lagged features for country stat data (using ASN data from country_stat)
+def create_lagged_features(df, value_col, lags=[1, 7, 14, 30], group_col='country'):
     df = df.copy()
     
     for lag in lags:
@@ -83,12 +75,13 @@ def create_lagged_features(df, value_col, lags=[1, 7, 14, 30], group_col='a_coun
     
     return df
 
-# Apply to key metrics in ASN data
-asn_df = create_lagged_features(asn_df, 'asn_count')
-print("Added lagged features to ASN data")
+# Apply to key metrics in country stat data (using cs_asns_ris as the primary ASN count)
+if 'cs_asns_ris' in stat_df.columns:
+    stat_df = create_lagged_features(stat_df, 'cs_asns_ris')
+    print("Added lagged features to country stat data (cs_asns_ris)")
 
 # Create rolling statistics features
-def create_rolling_features(df, value_col, window=7, group_col='a_country_iso2'):
+def create_rolling_features(df, value_col, window=7, group_col='country'):
     df = df.copy()
     
     df[f'{value_col}_rolling_mean_{window}'] = df.groupby(group_col)[value_col].transform(
@@ -107,11 +100,12 @@ def create_rolling_features(df, value_col, window=7, group_col='a_country_iso2')
     return df
 
 # Apply to key metrics
-asn_df = create_rolling_features(asn_df, 'asn_count')
-print("Added rolling features to ASN data")
+if 'cs_asns_ris' in stat_df.columns:
+    stat_df = create_rolling_features(stat_df, 'cs_asns_ris')
+    print("Added rolling features to country stat data (cs_asns_ris)")
 
 # Create change features
-def create_change_features(df, value_col, group_col='a_country_iso2'):
+def create_change_features(df, value_col, group_col='country'):
     df = df.copy()
     
     # Day-over-day change
@@ -121,67 +115,60 @@ def create_change_features(df, value_col, group_col='a_country_iso2'):
     return df
 
 # Apply to key metrics
-asn_df = create_change_features(asn_df, 'asn_count')
-print("Added change features to ASN data")
+if 'cs_asns_ris' in stat_df.columns:
+    stat_df = create_change_features(stat_df, 'cs_asns_ris')
+    print("Added change features to country stat data (cs_asns_ris)")
 
 # Print basic stats
-print("\nBasic Statistics for ASN Count:")
-print(asn_df['asn_count'].describe())
+if 'cs_asns_ris' in stat_df.columns:
+    print("\nBasic Statistics for ASN Count (cs_asns_ris):")
+    print(stat_df['cs_asns_ris'].describe())
 
 # Countries with most records
-country_counts = asn_df['a_country_iso2'].value_counts()
+country_counts = stat_df['country'].value_counts()
 print(f"\nCountries with most records:")
 print(country_counts.head(10))
 
 # Merge data sources
 print("\nMerging data sources...")
 
-# Rename columns for clarity
-asn_df_renamed = asn_df.rename(columns={'a_date': 'date', 'a_country_iso2': 'country'})
-conn_df_renamed = conn_df.rename(columns={'asn_country': 'country'})
-stat_df_renamed = stat_df.rename(columns={'cs_country_iso2': 'country', 'cs_stats_timestamp': 'date'})
-
-# Merge ASN and connectivity data
-merged_df = pd.merge(asn_df_renamed, conn_df_renamed, on=['country', 'date'], how='outer')
-print(f"Merged ASN and connectivity: {merged_df.shape}")
-
-# Merge with country stats
-final_df = pd.merge(merged_df, stat_df_renamed, on=['country', 'date'], how='outer')
+# Merge connectivity and country stats data
+final_df = pd.merge(conn_df, stat_df, on=['country', 'date'], how='outer')
 print(f"Final merged dataset: {final_df.shape}")
 
 # Create censorship indicators based on connectivity drops
 def create_censorship_indicators(df):
     df = df.copy()
-    
+
     # Create binary indicator for significant drops in connectivity
-    # Using foreign_neighbours_share if available, otherwise using asn_count
-    
+    # Using foreign_neighbours_share if available, otherwise using ASN counts from country stats
+
     # If we have foreign_neighbours_share, use that as the primary metric
     if 'foreign_neighbours_share' in df.columns:
         # Calculate rolling median for each country
         df['foreign_conn_rolling_median'] = df.groupby('country')['foreign_neighbours_share'].transform(
             lambda x: x.rolling(window=30, min_periods=7).median()
         )
-        
+
         # Create indicator for significant drop below baseline
         df['censorship_indicator'] = (
             (df['foreign_neighbours_share'] < df['foreign_conn_rolling_median'] * 0.7) &
             (df['foreign_neighbours_share'].notna())
         ).astype(int)
-        
-    # If we have asn_count, use that as an alternative metric
-    if 'asn_count' in df.columns:
-        # Calculate rolling median for ASN count
-        df['asn_count_rolling_median'] = df.groupby('country')['asn_count'].transform(
+
+    # If we have cs_asns_ris from country stats, use that as an alternative metric
+    if 'cs_asns_ris' in df.columns:
+        # Calculate rolling median for ASN count from country stats
+        df['asn_count_rolling_median'] = df.groupby('country')['cs_asns_ris'].transform(
             lambda x: x.rolling(window=30, min_periods=7).median()
         )
-        
+
         # Create indicator for significant drop in ASN count
         df['asn_censorship_indicator'] = (
-            (df['asn_count'] < df['asn_count_rolling_median'] * 0.7) &
-            (df['asn_count'].notna())
+            (df['cs_asns_ris'] < df['asn_count_rolling_median'] * 0.7) &
+            (df['cs_asns_ris'].notna())
         ).astype(int)
-    
+
     return df
 
 final_df = create_censorship_indicators(final_df)
@@ -209,7 +196,7 @@ if 'date' in final_df.columns:
     final_df_ml['date'] = final_df['date']
 if 'country' in final_df.columns:
     final_df_ml['country'] = final_df['country']
-    
+
 print(f"Final dataset shape: {final_df_ml.shape}")
 print(f"Final dataset columns: {final_df_ml.shape[1]}")
 
