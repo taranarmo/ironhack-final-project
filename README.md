@@ -16,24 +16,38 @@ final-project/
 │       └── preprocessed_for_ml.csv # Final dataset ready for ML
 ├── scripts/
 │   ├── run_data_preprocessing.py  # Data preprocessing and feature engineering
-│   └── run_ml_modeling.py         # ML model training and evaluation
+│   ├── run_ml_modeling.py         # Supervised ML model training and evaluation
+│   ├── run_unsupervised_ml.py     # Unsupervised anomaly detection
+│   ├── generate_corrected_visualizations.py    # Core data visualizations with proper normalization
+│   ├── generate_censorship_event_visualizations.py   # Event-based visualizations
+│   └── generate_unsupervised_event_visualizations.py # Supervised vs unsupervised comparison
 ├── notebooks/
 │   ├── data_preprocessing.ipynb   # Jupyter notebook for data prep
 │   └── ml_modeling.ipynb          # Jupyter notebook for ML modeling
 ├── run_pipeline.py               # Master pipeline runner
-├── README_FINAL_PROJECT.md      # This file
+├── README.md                    # This file
+├── slides/                      # Marp presentation slides
 ├── pyproject.toml              # Project dependencies and metadata
-└── uv.lock                     # Exact dependency versions
+├── uv.lock                     # Exact dependency versions
+└── figures/                    # Generated visualizations
 ```
 
 ## Data Sources
 
-The project uses four CSV files exported from our PostgreSQL database:
+The project uses data from both the original sampled dataset and the full database export:
 
+### Original Sampled Dataset:
 1. **ASN Data** (`data/raw/asn_data.csv`) - Daily ASN counts per country
 2. **Connectivity Data** (`data/raw/connectivity_data.csv`) - Foreign/domestic neighbor ratios
 3. **Country Stats** (`data/raw/country_stat_data.csv`) - Country-level network statistics
 4. **Neighbour Data** (`data/raw/neighbour_data.csv`) - AS neighbor relationship data
+
+### Country Statistics Data (Primary Source):
+1. **Country Stats** (`data/raw/country_stat_data.csv`) - Primary source containing ASN counts via cs_asns_ris (routed ASNs) and cs_asns_stats (total ASNs)
+2. **Connectivity Data** (`data/raw/connectivity_data.csv`) - Foreign/domestic neighbor ratios
+3. **Neighbour Data** (`data/raw/neighbour_data.csv`) - AS neighbor relationship data
+
+The project now properly uses country_stat_data as the primary source for ASN counts, which contains comprehensive global coverage with 240 countries.
 
 ## Data Preprocessing
 
@@ -65,9 +79,9 @@ All models are automatically saved after training and loaded when available:
 
 ### Target Creation
 
-The supervised models' target variable was created by identifying significant drops in connectivity metrics:
-- When foreign neighbor share drops below 50% of the country-specific rolling median
-- This indicates potential internet restriction events
+The supervised models' target variable was created by identifying significant drops in ASN counts:
+- When routed ASNs (cs_asns_ris) show significant drops compared to historical patterns
+- This indicates potential internet restriction events based on ASN-level disruptions
 
 The unsupervised models detect anomalies without requiring labeled examples, identifying unusual patterns in the time series data.
 
@@ -85,12 +99,16 @@ The unsupervised models detect anomalies without requiring labeled examples, ide
 
 ### Key Findings
 
-- **1,172 potential censorship events** detected by supervised models across 240 countries (with increased sensitivity)
-- **Anomalous patterns** identified by unsupervised models that may indicate previously unknown censorship events
+- **1,367 potential censorship events** detected by supervised models across 75 countries using ASN-based indicators (cs_asns_ris)
+- **240 countries** covered in the analysis with comprehensive temporal coverage (2015-2025)
+- **Multiple detection approaches**: Both supervised and unsupervised methods implemented
 - **High predictive accuracy** (99.98%+) due to strong signal in network connectivity metrics
 - **Excellent AUC scores** (1.0000) indicate strong discriminatory power
-- Top features include: foreign_neighbours_share, foreign_neighbour_count, day_of_week
+- Top features include: foreign_neighbours_share, foreign_neighbour_count, cs_asns_ris
 - Combined approach provides both known pattern detection and novel anomaly identification
+- **26 visualizations** created showing data patterns and detected events
+- **Proper normalization rules**: Only applied to ASN time series, not share/ratio values
+- **Data cleaning**: Removed 10 invalid records where routed ASNs > total ASNs
 
 ## Reproduction
 
@@ -109,5 +127,8 @@ You can also run individual components:
 - Run only preprocessing: `python scripts/run_data_preprocessing.py`
 - Run only supervised ML: `python scripts/run_ml_modeling.py`
 - Run only unsupervised ML: `python scripts/run_unsupervised_ml.py`
-- Compare results: `python scripts/compare_results.py`
+- Generate data visualizations: `python scripts/generate_corrected_visualizations.py`
+- Generate censorship event visualizations: `python scripts/generate_censorship_event_visualizations.py`
+- Generate method comparison visualizations: `python scripts/generate_unsupervised_event_visualizations.py`
 - Explore with Jupyter notebooks in the `notebooks/` directory
+- View presentation: Check `slides/presentation.md` (Marp format)

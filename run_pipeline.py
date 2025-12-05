@@ -48,9 +48,8 @@ def main():
     print("ASN Censorship Detection Pipeline")
     print("===============================")
 
-    # Check if required CSV files exist
+    # Check if required CSV files exist - asn_data.csv is no longer required as it's redundant with country_stat_data
     required_files = [
-        "data/raw/asn_data.csv",
         "data/raw/connectivity_data.csv",
         "data/raw/neighbour_data.csv",
         "data/raw/country_stat_data.csv"
