@@ -21,7 +21,7 @@ style: |
   }
 ---
 
-# Autonomous system numbers based internet censorship detection
+# Autonomous system data based internet censorship detection
 
 ## Using machine learning to identify network disruptions
 
