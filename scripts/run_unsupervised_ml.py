@@ -3,9 +3,9 @@ import numpy as np
 import os
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, RepeatVector, TimeDistributed
-from tensorflow.keras.callbacks import EarlyStopping
+from keras.models import Sequential
+from keras.layers import Dense, LSTM, RepeatVector, TimeDistributed
+from keras.callbacks import EarlyStopping
 import tensorflow as tf
 import warnings
 warnings.filterwarnings('ignore')

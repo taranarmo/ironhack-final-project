@@ -50,7 +50,7 @@ for i, country in enumerate(top_countries):
     plt.plot(country_data['date'], normalized_values, 
              label=f'{country} (Max: {country_max:.0f})', linewidth=2, alpha=0.8)
 
-plt.title('Time Series of Routed ASN Counts (Normalized by Country Max) - Top 10 Countries', fontsize=16)
+plt.title('Time Series of Routed ASN Counts (Normalized by Country Max)', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Normalized Routed ASN Count', fontsize=12)
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -106,7 +106,7 @@ for i, country in enumerate(top_conn_countries):
     plt.plot(country_data['date'], country_data['foreign_neighbours_share'],
              label=country, linewidth=2, alpha=0.8)
 
-plt.title('Foreign Neighbor Share Trends - Top 10 Countries', fontsize=16)
+plt.title('Foreign Neighbor Share Trends', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Foreign Neighbor Share', fontsize=12)
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -149,7 +149,7 @@ for country in top_countries_by_avg:
         # Keep raw share values, no normalization for share metrics
         plt.plot(monthly_series.index, monthly_series, label=country, linewidth=2)
 
-plt.title('Monthly Average Foreign Neighbor Share - Top 8 Countries', fontsize=16)
+plt.title('Monthly Average Foreign Neighbor Share', fontsize=16)
 plt.xlabel('Date', fontsize=12)
 plt.ylabel('Average Foreign Neighbor Share', fontsize=12)
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -225,7 +225,7 @@ top_countries = connectivity_data.groupby('asn_country').size().sort_values(asce
 filtered_data = connectivity_data[connectivity_data['asn_country'].isin(top_countries)]
 
 sns.boxplot(data=filtered_data, x='asn_country', y='foreign_neighbours_share')
-plt.title('Distribution of Foreign Neighbor Share by Country (Top 15)', fontsize=16)
+plt.title('Distribution of Foreign Neighbor Share by Country', fontsize=16)
 plt.xlabel('Country', fontsize=12)
 plt.ylabel('Foreign Neighbor Share', fontsize=12)
 plt.xticks(rotation=45)
