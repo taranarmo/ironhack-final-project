@@ -1,3 +1,6 @@
+> [!NOTE]
+> This project is undercooked and contains many flaws
+
 # ASN Censorship Detection Pipeline
 
 This project detects potential internet censorship events using Autonomous System Number (ASN) connectivity data. The pipeline processes raw data exports, performs feature engineering, and applies machine learning models to identify censorship.
